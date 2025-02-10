@@ -68,7 +68,7 @@ $ helm upgrade <my-release> helm --values <values file> -n <namespace>
 
 ## Links
 
-https://quantumleap.readthedocs.io/en/latest/
+https://quantumleap.readthedocs.io/en/latest/  
 https://github.com/orchestracities/ngsi-timeseries-api
 
 ## License
