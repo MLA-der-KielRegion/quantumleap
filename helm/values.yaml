@@ -1,0 +1,137 @@
+# Default values for quantumleap.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  registry: docker.io
+  repository: orchestracities/quantumleap
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+containerPort: 8668
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8668
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 1500m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+quantumleap:
+  # Define the log level for all services (DEBUG, INFO, WARNING , ERROR)
+  loglevel: WARNING
+  # Define the number of gunicorn worker processes for handling requests. Default to 2
+  workers: 2
+  # Default backend: timescale or crate
+  defaultdb: timescale
+  useFlask: false
+  geocoding: false
+  # Define the number of gunicorn threads per worker. Default to 1
+  # THREADS. Current implementation of ConnectionManager is not thread safe, so keep this value to 1.
+  threads: 1
+  redisHost: ""
+  redisPort: 6379
+  # Max number of rows a query can retrieve
+  # DEFAULT_LIMIT. This variable specifies the upper limit L of rows a query operation is allowed to fetch from
+  # the database and return to client. The actual number of rows will be the least of L and the client-specified
+  # limit or L if the client didn't specify a limit. If not set through this variable, L defaults to 10,000. This
+  # variable is read in on each API call to query endpoints so it can be set dynamically and it will affect every
+  # subsequent query operation. The variable string value you set should be convertible to an integer, if not, the
+  # default value of 10,000 will be used instead.
+  defaultLimit: 10000
+  # Whether to store original entity data
+  keepRawEntity: false
+  # Maximum amount of data a SQL (bulk) insert should take
+  insertMaxSize: 
+  # Time to live of metadata cache, default: 60 (seconds)
+  defaultCacheTtl: 60
+
+database:
+  timescale:
+    host: quantumleap
+    port: 5432
+    dbname: quantumleap
+    dbuser: quantumleap
+    dbpass: ""
+    sslenabled: false
+
+config: {}
+  # example configuration
+  # tenants: {}
+  #   t1:
+  #      backend: "Timescale"
+  #   t2:
+  #      backend: "Crate"
+  #   t3:
+  #      backend: "Timescale"
+  # default-backend: "timescale"
+
+wq:
+  # Whether to offload insert tasks to a work queue. Default: False.
+  offloadwork: false
+  # Whether to run tasks immediately if a work queue isn't available. Default: False.
+  recoverFromEnqueingFailure: false
+  # How many times work queue processors should retry failed tasks. Default: 0 (no retries).
+  maxRetries: 0
+  # How long, in seconds, before removing failed tasks from the work queue. Default: 604800 (a week).
+  failureTtl: 604800
+  # How long, in seconds, before removing successfully run tasks from the work queue. Default: 86400 (a day).
+  successTtl: 86400
+  # How many worker queue processors to spawn.
+  workers: 2
+
+cache:
+  geocoding: true
+  queries: true
+  defaultTtl: 60

@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "quantumleap.fullname" . }}
+  labels:
+    {{- include "quantumleap.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: quantumleap
+      protocol: TCP
+      name: quantumleap
+  selector:
+    {{- include "quantumleap.selectorLabels" . | nindent 4 }}
+
+---
+{{- if .Values.wq.offloadwork}}
+{{- if .Values.quantumleap.redisHost }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "quantumleap.fullname" . }}-bworker
+  labels:
+    {{- include "quantumleap.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: quantumleap
+      protocol: TCP
+      name: quantumleap
+  selector:
+    {{- include "quantumleap.selectorLabelsWorker" . | nindent 4 }}
+{{- end }}
+{{- end }}

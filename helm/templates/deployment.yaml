@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "quantumleap.fullname" . }}
+  labels:
+    {{- include "quantumleap.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "quantumleap.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "quantumleap.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "quantumleap.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: LOGLEVEL
+            value: {{ default "ERROR" .Values.quantumleap.loglevel }} 
+          - name: POSTGRES_HOST
+            value: {{ default "localhost" .Values.database.timescale.host }}
+          - name: POSTGRES_PORT
+            value: {{ default 5432 .Values.database.timescale.port | quote }}
+          - name: POSTGRES_DB_NAME
+            value: {{ default "quantumleap" .Values.database.timescale.dbname }}
+          - name: POSTGRES_DB_USER
+            value: {{ default "quantumleap" .Values.database.timescale.dbuser }}
+          - name: POSTGRES_USE_SSL
+            value: {{ default false .Values.database.timescale.sslenabled | quote }}
+          {{- if .Values.config }}
+          - name: QL_CONFIG
+            value: "/config/config.yml"
+          {{- end }}
+          - name: QL_DEFAULT_DB
+            value: {{ default "timescale" .Values.quantumleap.defaultdb }}
+          - name: DEFAULT_LIMIT
+            value: {{ default 10000 .Values.quantumleap.defaultLimit | quote }}
+          - name: KEEP_RAW_ENTITY
+            value: {{ default false .Values.quantumleap.keepRawEntity | quote }}
+          {{- if .Values.quantumleap.insertMaxSize }}
+          - name: INSERT_MAX_SIZE
+            value: {{ .Values.quantumleap.insertMaxSize | quote }}
+          {{- end }}
+          - name: DEFAULT_CACHE_TTL
+            value: {{ default 60 .Values.quantumleap.defaultCacheTtl | quote }}
+          - name: USE_GEOCODING
+            value: {{ default false .Values.quantumleap.geocoding | quote }}
+          - name: CACHE_GEOCODING
+            value: {{ default true .Values.cache.geocoding | quote }}
+          - name: CACHE_QUERIES
+            value: {{ default true .Values.cache.queries | quote }}
+          - name: DEFAULT_CACHE_TTL
+            value: {{ default 60 .Values.cache.defaultTtl | quote }}
+          - name: WQ_OFFLOAD_WORK
+            value: {{ default false .Values.wq.offloadwork | quote }}
+          - name: WQ_RECOVER_FROM_ENQUEUEING_FAILURE
+            value: {{ default false .Values.wq.recoverFromEnqueingFailure | quote }}
+          - name: WQ_MAX_RETRIES
+            value: {{ default 0 .Values.wq.maxRetries | quote }}
+          - name: WQ_FAILURE_TTL
+            value: {{ default 604800 .Values.wq.failureTtl | quote }}
+          - name: WQ_SUCCESS_TTL
+            value: {{ default 86400 .Values.wq.successTtl | quote }}
+          - name: WQ_WORKERS
+            value: {{ default 2 .Values.wq.workers | quote }}
+          - name: USE_FLASK
+            value: {{ default false .Values.quantumleap.useFlask | quote }}
+          - name: WORKERS 
+            value: {{ default 2 .Values.quantumleap.workers | quote }}
+          {{- if .Values.quantumleap.threads }}
+          - name: THREADS
+            value: {{ default 1 .Values.quantumleap.threads | quote }}
+          {{- end }}
+          {{- if .Values.quantumleap.redisHost }}
+          - name: REDIS_HOST
+            value: {{ .Values.quantumleap.redisHost | quote }}
+          {{- end }}
+          {{- if .Values.quantumleap.redisPort }}
+          - name: REDIS_PORT
+            value: {{ .Values.quantumleap.redisPort | quote }}
+          {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ .Chart.Name }}-timescale 
+          ports:
+            - name: quantumleap
+              containerPort: {{ .Values.containerPort}}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: quantumleap
+            failureThreshold: 3
+            periodSeconds: 60
+            successThreshold: 1
+            timeoutSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: quantumleap
+            failureThreshold: 3
+            periodSeconds: 60
+            successThreshold: 1
+            timeoutSeconds: 20
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config/config.yml
+              subPath: config.yml
+              readOnly: true
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "quantumleap.fullname" . }}
+            items:
+              - key: config.yml
+                path: config.yml
